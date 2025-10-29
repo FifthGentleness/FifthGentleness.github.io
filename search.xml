@@ -1,8 +1,161 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title></title>
+    <url>/2025/10/29/wolf/</url>
+    <content><![CDATA[<pre><code>import numpy as np  # 导入numpy库，用于数值计算
+import matplotlib.pyplot as plt  # 导入matplotlib.pyplot，用于绘图
+
+# ===========================
+# 灰狼优化算法 Gray Wolf Optimizer (GWO)
+# ===========================
+
+def GWO(obj_func, dim, bounds, num_wolves=30, max_iter=100):
+    &quot;&quot;&quot;
+    灰狼优化算法主函数
+    --------------------------------
+    参数:
+    obj_func : 目标函数
+    dim : 维度
+    bounds : 搜索范围 (tuple 或 list), 例如 (-10, 10)
+    num_wolves : 种群数量
+    max_iter : 最大迭代次数
+    --------------------------------
+    返回:
+    best_score : 最优目标值
+    best_pos : 最优位置
+    convergence_curve : 收敛曲线
+    &quot;&quot;&quot;
+    # 初始化 α, β, δ 狼的位置（Alpha:最优解，Beta:次优解，Delta:第三优解）
+    Alpha_pos = np.zeros(dim)  # Alpha狼位置初始化为零向量
+    Beta_pos = np.zeros(dim)   # Beta狼位置初始化为零向量
+    Delta_pos = np.zeros(dim)  # Delta狼位置初始化为零向量
+
+    # 初始化 α, β, δ 狼的适应度值（目标函数值）
+    Alpha_score = float(&quot;inf&quot;)  # Alpha狼适应度初始化为无穷大
+    Beta_score = float(&quot;inf&quot;)   # Beta狼适应度初始化为无穷大
+    Delta_score = float(&quot;inf&quot;)  # Delta狼适应度初始化为无穷大
+
+    # 初始化狼群位置，随机生成在搜索范围内
+    wolves = np.random.uniform(bounds[0], bounds[1], (num_wolves, dim))  # 生成num_wolves个dim维的随机个体
+
+    # 收敛曲线，记录每次迭代的最优适应度值
+    convergence_curve = []  # 初始化收敛曲线列表
+
+    # 迭代搜索过程
+    for t in range(max_iter):  # 开始迭代，总共max_iter次
+        for i in range(num_wolves):  # 对每只狼进行评估
+            # 将狼的位置限制在搜索边界内，防止越界
+            wolves[i] = np.clip(wolves[i], bounds[0], bounds[1])  # 使用clip函数确保位置在合法范围内
+
+            # 计算当前狼的适应度值（目标函数值）
+            fitness = obj_func(wolves[i])  # 调用目标函数计算适应度
+
+            # 更新 α, β, δ 狼（领导狼的等级更新）
+            if fitness &lt; Alpha_score:  # 如果当前狼的适应度优于Alpha狼
+                # 更新Delta狼为原来的Beta狼
+                Delta_score = Beta_score  # Delta狼适应度更新
+                Delta_pos = Beta_pos.copy()  # Delta狼位置更新
+
+                # 更新Beta狼为原来的Alpha狼
+                Beta_score = Alpha_score  # Beta狼适应度更新
+                Beta_pos = Alpha_pos.copy()  # Beta狼位置更新
+
+                # 更新Alpha狼为当前狼
+                Alpha_score = fitness  # Alpha狼适应度更新
+                Alpha_pos = wolves[i].copy()  # Alpha狼位置更新
+
+            elif fitness &lt; Beta_score:  # 如果当前狼的适应度优于Beta狼但不如Alpha狼
+                # 更新Delta狼为原来的Beta狼
+                Delta_score = Beta_score  # Delta狼适应度更新
+                Delta_pos = Beta_pos.copy()  # Delta狼位置更新
+
+                # 更新Beta狼为当前狼
+                Beta_score = fitness  # Beta狼适应度更新
+                Beta_pos = wolves[i].copy()  # Beta狼位置更新
+
+            elif fitness &lt; Delta_score:  # 如果当前狼的适应度优于Delta狼但不如Beta狼
+                # 更新Delta狼为当前狼
+                Delta_score = fitness  # Delta狼适应度更新
+                Delta_pos = wolves[i].copy()  # Delta狼位置更新
+
+        # 计算线性递减参数 a，控制收敛速度
+        a = 2 - t * (2 / max_iter)  # a参数随迭代次数线性递减，从2降到0
+
+        # 更新狼群位置（包围猎物的行为模拟）
+        for i in range(num_wolves):  # 对每只狼更新位置
+            # 计算Alpha狼对当前狼的影响
+            r1, r2 = np.random.rand(), np.random.rand()  # 生成两个随机数
+            A1 = 2 * a * r1 - a  # 计算系数A1
+            C1 = 2 * r2  # 计算系数C1
+            D_alpha = abs(C1 * Alpha_pos - wolves[i])  # 计算Alpha狼与当前狼的距离
+            X1 = Alpha_pos - A1 * D_alpha  # 根据Alpha狼更新位置
+
+            # 计算Beta狼对当前狼的影响
+            r1, r2 = np.random.rand(), np.random.rand()  # 重新生成两个随机数
+            A2 = 2 * a * r1 - a  # 计算系数A2
+            C2 = 2 * r2  # 计算系数C2
+            D_beta = abs(C2 * Beta_pos - wolves[i])  # 计算Beta狼与当前狼的距离
+            X2 = Beta_pos - A2 * D_beta  # 根据Beta狼更新位置
+
+            # 计算Delta狼对当前狼的影响
+            r1, r2 = np.random.rand(), np.random.rand()  # 再次生成两个随机数
+            A3 = 2 * a * r1 - a  # 计算系数A3
+            C3 = 2 * r2  # 计算系数C3
+            D_delta = abs(C3 * Delta_pos - wolves[i])  # 计算Delta狼与当前狼的距离
+            X3 = Delta_pos - A3 * D_delta  # 根据Delta狼更新位置
+
+            # 综合三只领导狼的影响，更新当前狼的位置
+            wolves[i] = (X1 + X2 + X3) / 3  # 取三个方向的平均值作为新位置
+
+        # 记录收敛过程，将当前最优适应度值添加到收敛曲线
+        convergence_curve.append(Alpha_score)  # 将Alpha狼的适应度值加入收敛曲线
+
+        # 输出进度信息，每10次迭代或首次迭代时打印
+        if (t + 1) % 10 == 0 or t == 0:  # 每10次迭代打印一次进度
+            print(f&quot;迭代 &#123;t + 1&#125;/&#123;max_iter&#125;，当前最优值 = &#123;Alpha_score:.6f&#125;&quot;)  # 打印当前迭代次数和最优值
+
+    # 返回最终结果：最优适应度值、最优位置和收敛曲线
+    return Alpha_score, Alpha_pos, convergence_curve  # 返回最优解、最优位置和收敛曲线
+
+
+# ===========================
+# 示例：Sphere 函数 (最小化)
+# ===========================
+def sphere(x):
+    &quot;&quot;&quot;Sphere 函数（测试函数）: f(x) = sum(x_i^2)&quot;&quot;&quot;
+    return np.sum(x ** 2)  # 计算输入向量各分量平方和
+
+
+if __name__ == &quot;__main__&quot;:  # 程序入口点
+    dim = 30                # 设置问题维度为30
+    bounds = (-10, 10)      # 设置搜索范围为[-10, 10]
+    num_wolves = 20         # 设置狼群数量为20
+    max_iter = 100          # 设置最大迭代次数为100
+
+    # 调用灰狼优化算法求解sphere函数
+    best_score, best_pos, curve = GWO(sphere, dim, bounds, num_wolves, max_iter)  # 执行GWO算法
+
+    # 打印算法运行结果
+    print(&quot;\n==============================&quot;)  # 打印分隔线
+    print(&quot;灰狼优化算法运行结束&quot;)  # 打印运行结束提示
+    print(f&quot;最优解位置：\n&#123;best_pos&#125;&quot;)  # 打印最优解位置
+    print(f&quot;最优目标值：&#123;best_score:.6e&#125;&quot;)  # 打印最优目标值（科学计数法）
+    print(&quot;==============================&quot;)  # 打印分隔线
+
+    # 绘制收敛曲线图
+    plt.figure(figsize=(7, 5))  # 创建图形窗口，设置尺寸为7x5英寸
+    plt.plot(curve, &#39;b-&#39;, linewidth=2)  # 绘制收敛曲线，蓝色实线，线宽为2
+    plt.title(&quot;灰狼优化算法收敛曲线&quot;, fontsize=14)  # 设置图形标题和字体大小
+    plt.xlabel(&quot;迭代次数&quot;)  # 设置x轴标签
+    plt.ylabel(&quot;适应度值&quot;)  # 设置y轴标签
+    plt.grid(True)  # 显示网格线
+    plt.show()  # 显示图形
+</code></pre>]]></content>
+  </entry>
+  <entry>
     <title>状态模式/有限状态机</title>
-    <url>/2025/10/28/%E7%8A%B6%E6%80%81%E6%A8%A1%E5%BC%8F%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E6%9C%BA/</url>
+    <url>/2025/10/29/%E7%8A%B6%E6%80%81%E6%A8%A1%E5%BC%8F%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E6%9C%BA/</url>
     <content><![CDATA[<p>状态基类：先布置好委托，继承的子类可以通过回调函数添加事件，在Enterstate这些虚函数里面写了回调，重写的时候也要触发一下</p>
 <p>1、FSMTriggerID：条件ID枚举</p>
 <figure class="highlight jsx"><table><tr><td class="code"><pre><span class="line">namespace <span class="title class_">CharacterControlSystem</span>.<span class="property">CharacterFSM</span></span><br><span class="line">&#123;</span><br><span class="line">    public enum <span class="title class_">FSMTriggerID</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="title class_">JumpToIdleDetection</span>,</span><br><span class="line">        <span class="title class_">MoveToIdleDetection</span>,</span><br><span class="line">        </span><br><span class="line">        <span class="title class_">IdleToMoveDetection</span>,</span><br><span class="line">        <span class="title class_">IdleToJumpDetection</span>,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
